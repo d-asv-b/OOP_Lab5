@@ -8,8 +8,6 @@
 #include <cmath>
 #include <sstream>
 
-// ============== Простые типы ==============
-
 void demonstrateSimpleTypes() {
     std::cout << "\n========== ДЕМОНСТРАЦИЯ ПРОСТЫХ ТИПОВ ==========\n" << std::endl;
     
@@ -20,7 +18,7 @@ void demonstrateSimpleTypes() {
     std::pmr::polymorphic_allocator<ListItem<int>> allocInt(&mres);
     LinkedList<int, std::pmr::polymorphic_allocator<ListItem<int>>> intList({10, 20, 30, 40, 50}, allocInt);
     
-    std::cout << "    Инициализация списка: {10, 20, 30, 40, 50}\n";
+    std::cout << "    Инициализация списка: { 10, 20, 30, 40, 50 }\n";
     std::cout << "    Размер: " << intList.getSize() << "\n";
     std::cout << "    Элементы: ";
     for (size_t i = 0; i < intList.getSize(); ++i) {
@@ -51,12 +49,11 @@ void demonstrateSimpleTypes() {
     }
     std::cout << "\n" << std::endl;
     
-    // --------- double ---------
     std::cout << "[2] LinkedList<double>\n";
     std::pmr::polymorphic_allocator<ListItem<double>> allocDouble(&mres);
     LinkedList<double, std::pmr::polymorphic_allocator<ListItem<double>>> doubleList({1.5, 2.7, 3.14, 4.2}, allocDouble);
     
-    std::cout << "    Инициализация списка: {1.5, 2.7, 3.14, 4.2}\n";
+    std::cout << "    Инициализация списка: { 1.5, 2.7, 3.14, 4.2 }\n";
     std::cout << "    Размер: " << doubleList.getSize() << "\n";
     std::cout << "    Элементы: ";
     for (size_t i = 0; i < doubleList.getSize(); ++i) {
@@ -79,7 +76,7 @@ void demonstrateSimpleTypes() {
         {"Hello", "World", "LinkedList", "C++"}, allocString
     );
     
-    std::cout << "    Инициализация списка: {\"Hello\", \"World\", \"LinkedList\", \"C++\"}\n";
+    std::cout << "    Инициализация списка: { \"Hello\", \"World\", \"LinkedList\", \"C++\" }\n";
     std::cout << "    Размер: " << stringList.getSize() << "\n";
     std::cout << "    Элементы: ";
     for (size_t i = 0; i < stringList.getSize(); ++i) {
@@ -107,7 +104,7 @@ struct Student {
     // Для вывода
     std::string toString() const {
         std::stringstream ss;
-        ss << "{ name=\"" << name << "\", age=" << age << ", gpa=" << std::fixed << std::setprecision(2) << gpa << " }";
+        ss << "{ \n\t\tname=\"" << name << "\",\n\t\tage=" << age << ",\n\t\tgpa=" << std::fixed << std::setprecision(2) << gpa << " \n\t}";
         return ss.str();
     }
 };
@@ -122,9 +119,9 @@ struct Point3D {
     
     std::string toString() const {
         std::stringstream ss;
-        ss << "{ x=" << std::fixed << std::setprecision(2) << x 
-           << ", y=" << y << ", z=" << z 
-           << ", distance_from_origin=" << distance() << " }";
+        ss << "{ \n\t\tx=" << std::fixed << std::setprecision(2) << x 
+           << ",\n\t\ty=" << y << ",\n\t\tz=" << z 
+           << ",\n\t\tdistance_from_origin=" << distance() << "\n\t}";
         return ss.str();
     }
 };
@@ -138,8 +135,8 @@ struct Book {
     
     std::string toString() const {
         std::stringstream ss;
-        ss << "{ title=\"" << title << "\", author=\"" << author 
-           << "\", year=" << year << ", pages=" << pages << " }";
+        ss << "{\n\t\ttitle=\"" << title << "\",\n\t\tauthor=\"" << author 
+           << "\",\n\t\tyear=" << year << ",\n\t\tpages=" << pages << " \n\t}";
         return ss.str();
     }
 };
@@ -171,15 +168,14 @@ void demonstrateComplexTypes() {
     
     Student newStudent{"David", 20, 3.7};
     studentList.pushFront(newStudent);
-    std::cout << "    После pushFront(David, 20, 3.7):\n";
+    std::cout << "\n    После pushFront(David, 20, 3.7):\n";
     for (size_t i = 0; i < studentList.getSize(); ++i) {
         std::cout << "      [" << i << "] " << studentList[i].value.toString() << "\n";
     }
     
     Student poppedStudent = studentList.popBack();
-    std::cout << "    Удален с конца: " << poppedStudent.toString() << "\n\n";
+    std::cout << "\n    Удален с конца: " << poppedStudent.toString() << "\n\n";
     
-    // --------- Point3D ---------
     std::cout << "[2] LinkedList<Point3D>\n";
     std::pmr::polymorphic_allocator<ListItem<Point3D>> allocPoint(&mres);
     LinkedList<Point3D, std::pmr::polymorphic_allocator<ListItem<Point3D>>> pointList(allocPoint);
@@ -201,7 +197,7 @@ void demonstrateComplexTypes() {
     
     Point3D p4{2.0, 3.0, 6.0};
     pointList.pushFront(p4);
-    std::cout << "    После pushFront({2.0, 3.0, 6.0}):\n";
+    std::cout << "\n    После pushFront({2.0, 3.0, 6.0}):\n";
     for (size_t i = 0; i < pointList.getSize(); ++i) {
         std::cout << "      [" << i << "] " << pointList[i].value.toString() << "\n";
     }
@@ -229,14 +225,14 @@ void demonstrateComplexTypes() {
     
     Book newBook{"Modern C++", "Herb Sutter", 2018, 752};
     bookList.pushFront(newBook);
-    std::cout << "    После pushFront(Modern C++, Herb Sutter, 2018, 752):\n";
+    std::cout << "\n    После pushFront(Modern C++, Herb Sutter, 2018, 752):\n";
     for (size_t i = 0; i < bookList.getSize(); ++i) {
         std::cout << "      [" << i << "] " << bookList[i].value.toString() << "\n";
     }
     
     Book poppedBook = bookList.popFront();
-    std::cout << "    Удален с начала: " << poppedBook.toString() << "\n";
-    std::cout << "    Результирующий список:\n";
+    std::cout << "\n    Удален с начала: " << poppedBook.toString() << "\n";
+    std::cout << "\n    Результирующий список:\n";
     for (size_t i = 0; i < bookList.getSize(); ++i) {
         std::cout << "      [" << i << "] " << bookList[i].value.toString() << "\n";
     }
@@ -244,16 +240,8 @@ void demonstrateComplexTypes() {
 }
 
 int main() {
-    std::cout << "\n╔════════════════════════════════════════════════════════════════╗\n";
-    std::cout << "║         ДЕМОНСТРАЦИЯ ОДНОСВЯЗНОГО СПИСКА (LinkedList)         ║\n";
-    std::cout << "╚════════════════════════════════════════════════════════════════╝\n";
-    
     demonstrateSimpleTypes();
     demonstrateComplexTypes();
-    
-    std::cout << "\n╔════════════════════════════════════════════════════════════════╗\n";
-    std::cout << "║                     ДЕМОНСТРАЦИЯ ЗАВЕРШЕНА                      ║\n";
-    std::cout << "╚════════════════════════════════════════════════════════════════╝\n\n";
-    
+
     return 0;
 }

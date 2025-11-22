@@ -4,6 +4,7 @@
 #include <list>
 
 class MemoryResource : public std::pmr::memory_resource {
+private:
     struct BufferBlock {
         BufferBlock() {};
         BufferBlock(size_t memoryOffset, size_t memorySize) : memOffset(memoryOffset), memSize(memorySize) {}
@@ -12,7 +13,6 @@ class MemoryResource : public std::pmr::memory_resource {
         size_t memSize{0};
     };
 
-private:
     size_t _bufSize = 0;
     char* _memBuffer = 0;
     std::list<BufferBlock> _usedMemBlocks;

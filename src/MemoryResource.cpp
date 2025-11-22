@@ -24,7 +24,6 @@ void* MemoryResource::do_allocate(size_t allocationSize, size_t alingment) {
     for (auto block : this->_usedMemBlocks) {
         if (allocOffset + allocationSize > block.memOffset && 
             allocOffset < block.memOffset + block.memSize) {
-            // Пересечение - переместиться после этого блока
             allocOffset = block.memOffset + block.memSize;
         }
     }
