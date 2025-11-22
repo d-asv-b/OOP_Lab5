@@ -7,6 +7,8 @@
 #include <memory_resource>
 #include <stdexcept>
 #include <type_traits>
+#include <iterator>
+#include <utility>
 
 template <typename Type>
 class LinkedListIterator {
@@ -16,6 +18,15 @@ private:
     size_t _currIdx;
 
 public:
+    // type_traits, требуются для forward_iterator
+    using value_type = typename Type::elementType;
+    using reference = value_type&;
+    using pointer   = value_type*;
+    using difference_type = std::ptrdiff_t;
+    using iterator_category = std::forward_iterator_tag;
+
+    LinkedListIterator() : _pointer(nullptr), _size(0), _currIdx(0) {}
+
     LinkedListIterator(Type* listPtr, size_t listSize, size_t elemIdx) :
         _pointer(listPtr), _size(listSize), _currIdx(elemIdx) {}
 
@@ -24,7 +35,7 @@ public:
             throw std::out_of_range("List index is out of range!");
         }
 
-        return (*this->_pointer)[this->_currIdx];
+        return (*this->_pointer)[this->_currIdx].value;
     }
 
     typename Type::elementType operator->() {
@@ -36,13 +47,35 @@ public:
         return *this;
     }
 
-    bool operator!=(const LinkedListIterator<Type>& other) const {
+    LinkedListIterator<Type> operator++(int) {
+        LinkedListIterator<Type> temp(*this);
+        ++this->_currIdx;
+        return temp;
+    }
+    
+    bool operator==(const LinkedListIterator<Type>& other) const {
         return (
-            this->_currIdx != other._currIdx &&
-            this->_pointer != other._pointer
+            this->_currIdx == other._currIdx &&
+            this->_pointer == other._pointer
         );
     }
+
+    bool operator!=(const LinkedListIterator<Type>& other) const {
+        return !(*this == other);
+    }
 };
+
+// требуется для forward_iterator
+namespace std {
+    template <typename Type>
+    struct iterator_traits<LinkedListIterator<Type>> {
+        using difference_type = std::ptrdiff_t;
+        using value_type = typename Type::elementType;
+        using pointer = typename LinkedListIterator<Type>::pointer;
+        using reference = typename LinkedListIterator<Type>::reference;
+        using iterator_category = std::forward_iterator_tag;
+    };
+}
 
 template <typename T>
 struct PolymorphicDeleter {
@@ -72,7 +105,7 @@ public:
     LinkedList(AllocatorType alloc = {}) : _head(nullptr), _listSize(0), _allocator(alloc) {}
 
     LinkedList(size_t size, AllocatorType alloc = {}) : _listSize(size), _allocator(alloc) {
-#define ALLOC_MULTIPLE_AT_ONCE
+// #define ALLOC_MULTIPLE_AT_ONCE
 #ifdef ALLOC_MULTIPLE_AT_ONCE
         ListItem<T>* rawPtr = this->_allocator.allocate(this->_listSize);
         this->_allocator.construct(rawPtr + this->_listSize - 1);
@@ -84,12 +117,12 @@ public:
 
         this->_head = std::move(LimitedUniquePtr<ListItem<T>>(rawPtr, PolymorphicDeleter<ListItem<T>>{}));
 #else
-        LimitedUniquePtr currItem = std::unique_ptr<ListItem<T>>(this->_allocator.allocate(1));
+        LimitedUniquePtr<ListItem<T>> currItem = LimitedUniquePtr<ListItem<T>>(this->_allocator.allocate(1));
         this->_allocator.construct(currItem.get());
 
-        std::unique_ptr<ListItem<T>> newItem;
+        
         for (long long i = this->_listSize - 2; i >= 0; --i) {
-            newItem = std::move(std::unique_ptr<ListItem<T>>(this->_allocator.allocate(1)));
+            LimitedUniquePtr<ListItem<T>> newItem = std::move(LimitedUniquePtr<ListItem<T>>(this->_allocator.allocate(1)));
             this->_allocator.construct(newItem.get());
 
             newItem.get()->nextItem = std::move(currItem);
@@ -97,11 +130,12 @@ public:
             currItem = std::move(newItem);
         }
 
-        this->_head = std::move(newItem);
+        this->_head = std::move(currItem);
 #endif
     }
 
     LinkedList(std::initializer_list<T> params, AllocatorType alloc = {}) : _listSize(params.size()), _allocator(alloc) {
+
 #ifdef ALLOC_MULTIPLE_AT_ONCE
         ListItem<T>* rawPtr = this->_allocator.allocate(this->_listSize);
 
@@ -117,20 +151,21 @@ public:
 
         this->_head = std::move(LimitedUniquePtr<ListItem<T>>(rawPtr, PolymorphicDeleter<ListItem<T>>{}));
 #else
-        std::unique_ptr<ListItem<T>> currItem = std::unique_ptr<ListItem<T>>(this->_allocator.allocate(1));
+        LimitedUniquePtr<ListItem<T>> currItem = LimitedUniquePtr<ListItem<T>>(this->_allocator.allocate(1));
         this->_allocator.construct(currItem.get());
-
-        std::unique_ptr<ListItem<T>> newItem;
+        currItem.get()->value =*(params.begin() + this->_listSize - 1);
+       
         for (long long i = this->_listSize - 2; i >= 0; --i) {
-            newItem = std::move(std::unique_ptr<ListItem<T>>(this->_allocator.allocate(1)));
+             LimitedUniquePtr<ListItem<T>> newItem = std::move(LimitedUniquePtr<ListItem<T>>(this->_allocator.allocate(1)));
             this->_allocator.construct(newItem.get());
 
+            newItem.get()->value = *(params.begin() + i);
             newItem.get()->nextItem = std::move(currItem);
 
             currItem = std::move(newItem);
         }
 
-        this->_head = std::move(newItem);
+        this->_head = std::move(currItem);
 #endif
     }
 
@@ -139,31 +174,32 @@ public:
         ListItem<T>* ptrToDealloc = this->_head.get();
 #endif
 
-        if constexpr (std::is_destructible_v<T>) {
-            LimitedUniquePtr<ListItem<T>> currentItem = std::move(this->_head);
+        if (this->_listSize > 0) {
+            if constexpr (std::is_destructible_v<T>) {
+                LimitedUniquePtr<ListItem<T>> currentItem = std::move(this->_head);
 
-            while (currentItem != nullptr) {
-                std::allocator_traits<AllocatorType>::destroy(
-                    this->_allocator,
-                    &(currentItem.get()->value)
-                );
+                while (currentItem != nullptr) {
+                    std::allocator_traits<AllocatorType>::destroy(
+                        this->_allocator,
+                        &(currentItem.get()->value)
+                    );
 
-                LimitedUniquePtr<ListItem<T>> tmp = std::move(currentItem.get()->nextItem);
+                    LimitedUniquePtr<ListItem<T>> tmp = std::move(currentItem.get()->nextItem);
 #ifndef ALLOC_MULTIPLE_AT_ONCE
-                this->_allocator.deallocate(currentItem.get(), 1);
+                    this->_allocator.deallocate(currentItem.get(), 1);
 #endif
-                currentItem = std::move(tmp);
+                    currentItem = std::move(tmp);
+                }
             }
-        }
 
 #ifdef ALLOC_MULTIPLE_AT_ONCE
-        this->_allocator.deallocate(ptrToDealloc, this->_listSize);
+            this->_allocator.deallocate(ptrToDealloc, this->_listSize);
 #endif
+        }
 
         this->_head = nullptr;
         this->_listSize = 0;
     }
-
 
     // Доступ к массиву (изменение)
     ListItem<T>& operator[](size_t idx) {
@@ -171,7 +207,7 @@ public:
             throw std::out_of_range("List index is out of range!");
         }
 
-        ListItem<T>* returnItem = _head.get();
+        ListItem<T>* returnItem = (this->_head.get());
 
         for (size_t i = 1; i <= idx; ++i) {
             returnItem = (*returnItem).nextItem.get();
@@ -186,10 +222,10 @@ public:
             throw std::out_of_range("List index is out of range!");
         }
 
-        ListItem<T> returnItem = *_head;
+        ListItem<T> returnItem = *(this->_head);
 
         for (size_t i = 1; i <= idx; ++i) {
-            returnItem = *((*_head).nextItem);
+            returnItem = *(returnItem.nextItem);
         }
 
         return returnItem;
@@ -199,8 +235,90 @@ public:
         return this->_listSize;
     }
 
+    void pushFront(T& value) {
+        LimitedUniquePtr<ListItem<T>> newItem = LimitedUniquePtr<ListItem<T>>(this->_allocator.allocate(1));
+        this->_allocator.construct(newItem.get());
+
+        newItem.get()->value = value;
+        newItem.get()->nextItem = std::move(this->_head);
+
+        this->_head = std::move(newItem);
+
+        ++this->_listSize;
+    }
+
+    void pushBack(T& value) {
+        LimitedUniquePtr<ListItem<T>> newItem = LimitedUniquePtr<ListItem<T>>(this->_allocator.allocate(1));
+        this->_allocator.construct(newItem.get());
+
+        newItem.get()->value = value;
+
+        if (this->_listSize == 0) {
+            this->_head = std::move(newItem);
+        } else {
+            (*this)[this->_listSize - 1].nextItem = std::move(newItem);
+        }
+
+        ++this->_listSize;
+    }
+
+    T popFront() {
+        if (this->_listSize == 0) {
+            throw std::out_of_range("Cannot pop from empty list!");
+        }
+
+        T tmpValue = this->_head.get()->value;
+
+        ListItem<T>* oldHead = this->_head.get();
+        if (this->_listSize == 1) {
+            this->_head = nullptr;
+        }
+        else {
+            auto tmp = std::move(this->_head.get()->nextItem);
+
+            this->_head = std::move(tmp);
+        }
+
+        this->_allocator.deallocate(oldHead, 1);
+
+        --this->_listSize;
+
+        return tmpValue;
+    }
+
+    T popBack() {
+        if (this->_listSize == 0) {
+            throw std::out_of_range("Cannot pop from empty list!");
+        }
+
+        T tmp = (*this)[this->_listSize - 1].value;
+
+        if (this->_listSize == 1) {
+            this->_allocator.deallocate(this->_head.get(), 1);
+            this->_head = nullptr;
+        } else {
+            // Найдём предпоследний элемент
+            ListItem<T>* prevItem = this->_head.get();
+            for (size_t i = 1; i < this->_listSize - 1; ++i) {
+                prevItem = prevItem->nextItem.get();
+            }
+            
+            // Удалим последний элемент
+            this->_allocator.deallocate(prevItem->nextItem.get(), 1);
+            prevItem->nextItem = nullptr;
+        }
+
+        --this->_listSize;
+
+        return tmp;
+    }
+
+    bool isEmpty() const {
+        return this->getSize() == 0;
+    }
+
     LinkedListIterator<LinkedList<T, AllocatorType>> begin() {
-        return LinkedListIterator<LinkedList<T, AllocatorType>>(this, 0, this->_listSize);
+        return LinkedListIterator<LinkedList<T, AllocatorType>>(this, this->_listSize, 0);
     }
 
     LinkedListIterator<LinkedList<T, AllocatorType>> end() {
