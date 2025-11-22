@@ -4,18 +4,16 @@
 #include <new>
 #include <stdexcept>
 
-MemoryResource::MemoryResource(size_t bufferSize) : _bufSize(bufferSize) {
+MemoryResource::MemoryResource() {
     this->_usedMemBlocks = std::list<BufferBlock>();
-    this->_memBuffer = new char[this->_bufSize]();
 }
 
 MemoryResource::~MemoryResource() {
     this->_usedMemBlocks.clear();
-    delete this->_memBuffer;
 }
 
 void* MemoryResource::do_allocate(size_t allocationSize, size_t alingment) {
-    if (allocationSize > this->_bufSize) {
+    if (allocationSize > BUFFER_SIZE) {
         throw std::bad_alloc();
     }
 
@@ -28,7 +26,7 @@ void* MemoryResource::do_allocate(size_t allocationSize, size_t alingment) {
         }
     }
 
-    if (allocOffset + allocationSize > this->_bufSize) {
+    if (allocOffset + allocationSize > BUFFER_SIZE) {
         throw std::bad_alloc();
     }
 

@@ -4,7 +4,7 @@
 // Тесты для MemoryResource - управление памятью
 class MemoryResourceTest : public ::testing::Test {
 protected:
-    MemoryResource mres{1000};
+    MemoryResource mres;
 };
 
 TEST_F(MemoryResourceTest, AllocateSingleBlock) {
@@ -36,7 +36,7 @@ TEST_F(MemoryResourceTest, DeallocateAndReallocate) {
 }
 
 TEST_F(MemoryResourceTest, ThrowOnExceedBufferSize) {
-     EXPECT_THROW(mres.do_allocate(1500, 1), std::bad_alloc);
+    EXPECT_THROW(mres.do_allocate(5001, 1), std::bad_alloc);
 }
 
 TEST_F(MemoryResourceTest, AllocateAfterPartialDeallocation) {
@@ -69,14 +69,14 @@ TEST_F(MemoryResourceTest, MultipleAllocationsDeallocationsCycles) {
 }
 
 TEST_F(MemoryResourceTest, MemoryResourceEquality) {
-    MemoryResource other(500);
+    MemoryResource other;
     
     EXPECT_TRUE(mres.do_is_equal(mres));
     EXPECT_FALSE(mres.do_is_equal(other));
 }
 
 TEST_F(MemoryResourceTest, LargeAllocation) {
-    void* ptr = mres.do_allocate(900, 1);
+    void* ptr = mres.do_allocate(4900, 1);
     EXPECT_NE(ptr, nullptr);
     
     // Оставляем 100 байт - должны бросить ошибку при попытке выделить 101
@@ -84,7 +84,7 @@ TEST_F(MemoryResourceTest, LargeAllocation) {
 }
 
 TEST_F(MemoryResourceTest, DeallocateUnallocatedMemory) {
-    MemoryResource mres(1000);
+    MemoryResource mres;
     
     // Попытка deallocate памяти, которая не была выделена
     char dummy[100];

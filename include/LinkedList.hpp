@@ -30,7 +30,7 @@ public:
     LinkedListIterator(Type* listPtr, size_t listSize, size_t elemIdx) :
         _pointer(listPtr), _size(listSize), _currIdx(elemIdx) {}
 
-    typename Type::elementType operator*() {
+    reference operator*() {
         if (this->_currIdx >= this->_size) {
             throw std::out_of_range("List index is out of range!");
         }
@@ -38,7 +38,7 @@ public:
         return (*this->_pointer)[this->_currIdx].value;
     }
 
-    typename Type::elementType operator->() {
+    reference operator->() {
         return *this;
     }
 
@@ -104,6 +104,18 @@ public:
     LinkedList(AllocatorType alloc = {}) : _head(nullptr), _listSize(0), _allocator(alloc) {}
 
     LinkedList(size_t size, AllocatorType alloc = {}) : _listSize(size), _allocator(alloc) {
+        // #define ALLOC_MULTIPLE_AT_ONCE
+#ifdef ALLOC_MULTIPLE_AT_ONCE
+        ListItem<T>* rawPtr = this->_allocator.allocate(this->_listSize);
+        this->_allocator.construct(rawPtr + this->_listSize - 1);
+
+        for (long long i = this->_listSize - 2; i >= 0; --i) {
+            this->_allocator.construct(rawPtr + i);
+            rawPtr[i].nextItem = std::move(LimitedUniquePtr<ListItem<T>>(rawPtr + i + 1, PolymorphicDeleter<ListItem<T>>{}));
+        }
+
+        this->_head = std::move(LimitedUniquePtr<ListItem<T>>(rawPtr, PolymorphicDeleter<ListItem<T>>{}));
+#else
         LimitedUniquePtr<ListItem<T>> currItem = LimitedUniquePtr<ListItem<T>>(this->_allocator.allocate(1));
         this->_allocator.construct(currItem.get());
 
@@ -118,9 +130,25 @@ public:
         }
 
         this->_head = std::move(currItem);
+#endif
     }
 
     LinkedList(std::initializer_list<T> params, AllocatorType alloc = {}) : _listSize(params.size()), _allocator(alloc) {
+#ifdef ALLOC_MULTIPLE_AT_ONCE
+        ListItem<T>* rawPtr = this->_allocator.allocate(this->_listSize);
+
+        this->_allocator.construct(rawPtr + this->_listSize - 1);
+        rawPtr[this->_listSize - 1].value = *(params.begin() + this->_listSize - 1);
+
+        for (long long i = this->_listSize - 2; i >= 0; --i) {
+            this->_allocator.construct(rawPtr + i);
+
+            rawPtr[i].value = *(params.begin() + i);
+            rawPtr[i].nextItem = std::move(LimitedUniquePtr<ListItem<T>>(rawPtr + i + 1, PolymorphicDeleter<ListItem<T>>{}));
+        }
+
+        this->_head = std::move(LimitedUniquePtr<ListItem<T>>(rawPtr, PolymorphicDeleter<ListItem<T>>{}));
+#else
         LimitedUniquePtr<ListItem<T>> currItem = LimitedUniquePtr<ListItem<T>>(this->_allocator.allocate(1));
         this->_allocator.construct(currItem.get());
         currItem.get()->value =*(params.begin() + this->_listSize - 1);
@@ -136,12 +164,17 @@ public:
         }
 
         this->_head = std::move(currItem);
+#endif
     }
 
     LinkedList(LinkedList& other) = delete;
     LinkedList(LinkedList&& other) noexcept = default;
 
     ~LinkedList() {
+#ifdef ALLOC_MULTIPLE_AT_ONCE
+        ListItem<T>* ptrToDealloc = this->_head.get();
+#endif
+
         if (this->_listSize > 0) {
             if constexpr (std::is_destructible_v<T>) {
                 LimitedUniquePtr<ListItem<T>> currentItem = std::move(this->_head);
@@ -153,10 +186,16 @@ public:
                     );
 
                     LimitedUniquePtr<ListItem<T>> tmp = std::move(currentItem.get()->nextItem);
+#ifndef ALLOC_MULTIPLE_AT_ONCE
                     this->_allocator.deallocate(currentItem.get(), 1);
+#endif
                     currentItem = std::move(tmp);
                 }
             }
+
+#ifdef ALLOC_MULTIPLE_AT_ONCE
+            this->_allocator.deallocate(ptrToDealloc, this->_listSize);
+#endif
         }
 
         this->_head = nullptr;

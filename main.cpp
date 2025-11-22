@@ -245,3 +245,32 @@ int main() {
 
     return 0;
 }
+
+
+/* #include "include/LinkedList.hpp"
+#include "include/MemoryResource.hpp"
+#include <cstddef>
+#include <iostream>
+
+int main() {
+    MemoryResource mres;
+    
+    std::pmr::polymorphic_allocator<ListItem<int>> allocStudent(&mres);
+    LinkedList<int, std::pmr::polymorphic_allocator<ListItem<int>>> list1({1, 2, 3}, allocStudent);
+
+    for (size_t i = 0; i < list1.getSize(); ++i) {
+        std::cout << &(list1[i]) << ' ';
+    }
+
+    std::cout << "\n";
+
+    list1.popFront();
+
+    LinkedList<int, std::pmr::polymorphic_allocator<ListItem<int>>> list2({5}, allocStudent);
+
+    for (size_t i = 0; i < list2.getSize(); ++i) {
+        std::cout << &(list2[i]) << ' ';
+    }
+
+    std::cout << "\n";
+} */

@@ -3,6 +3,8 @@
 #include <memory_resource>
 #include <list>
 
+#define BUFFER_SIZE 5000
+
 class MemoryResource : public std::pmr::memory_resource {
 private:
     struct BufferBlock {
@@ -13,12 +15,11 @@ private:
         size_t memSize{0};
     };
 
-    size_t _bufSize = 0;
-    char* _memBuffer = 0;
+    char _memBuffer[BUFFER_SIZE];
     std::list<BufferBlock> _usedMemBlocks;
 
 public:
-    MemoryResource(size_t = 5000);
+    MemoryResource();
     ~MemoryResource();
 
     void* do_allocate(size_t, size_t) override;
