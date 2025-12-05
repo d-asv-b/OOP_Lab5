@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 project(Lab5)
 
 set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 
 add_library(${PROJECT_NAME}_lib
   src/MemoryResource.cpp
@@ -13,7 +14,8 @@ add_executable(
 )
 set_target_properties(${PROJECT_NAME}_exe PROPERTIES OUTPUT_NAME "Lab_exe")
 
-target_compile_options(${PROJECT_NAME}_exe PRIVATE -g)
+target_compile_options(${PROJECT_NAME}_exe PRIVATE -g -O0)
+target_link_options(${PROJECT_NAME}_exe PRIVATE -g)
 target_link_libraries(${PROJECT_NAME}_exe PRIVATE ${PROJECT_NAME}_lib)
 
 enable_testing()
